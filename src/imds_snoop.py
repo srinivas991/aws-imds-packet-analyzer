@@ -9,6 +9,8 @@ import json
 from bcc import BPF
 from logging.config import fileConfig
 
+logging.getLogger("bpf").setLevel(logging.ERROR)
+
 #GLOBAL => set logger object as global because initializing the logger in the bpf callback function could cause unnecessary overhead
 imds_trace_logger = None
 
