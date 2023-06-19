@@ -2,8 +2,11 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-from bcc import BPF
 import logging
+import re
+import json
+
+from bcc import BPF
 from logging.config import fileConfig
 
 #GLOBAL => set logger object as global because initializing the logger in the bpf callback function could cause unnecessary overhead
@@ -61,6 +64,11 @@ def hideToken(comms: str) -> str:
 :rtype proc_info: str
 """
 def get_proc_info(pid: int, proc_name: str, is_debug=False) -> str:
+
+    # process IDs start from 1
+    if pid == 0:
+       return ""
+
     if (is_debug):
         print("========================================================================")
         print("[DEBUG] pid: " + str(pid))
@@ -68,7 +76,7 @@ def get_proc_info(pid: int, proc_name: str, is_debug=False) -> str:
         print("========================================================================")
 
     try:
-        cmdline = open("/proc/" + str(pid) + "/cmdline").read()
+        cmdline = open("/mnt/proc/" + str(pid) + "/cmdline").read()
         proc_info = ":" + proc_name
         proc_info += " argv:" + cmdline.replace('\x00', ' ').rstrip()
         return (proc_info)
@@ -77,6 +85,26 @@ def get_proc_info(pid: int, proc_name: str, is_debug=False) -> str:
         error_message = " Unable to get argv information"
         return (error_message)
 
+def get_pod_name(msg: str) -> str:
+    pattern = r'[a-z0-9]{64}'
+    matches = re.findall(pattern, msg)
+    container_id = matches[0] if len(matches) > 0 else "no container id"
+
+    if container_id == "no container id":
+       imds_trace_logger.error(msg)
+       return "-1"
+    # /var/lib/docker/containers/{container_id}/config.v2.json|jq -r '.Config.Hostname'
+    # print(container_id)
+
+    try:
+        with open(f"/mnt/containers/{container_id}/config.v2.json", 'r') as f:
+            config_json = json.load(f)
+            pod_name = config_json['Config']['Labels']['io.kubernetes.pod.name']
+            namespace = config_json['Config']['Labels']['io.kubernetes.pod.namespace']
+            return f"{namespace}/{pod_name}"
+    except Exception as e:
+       print(e)
+       return "-1"
 
 """ generate output message per imds network call
 
@@ -88,28 +116,24 @@ def get_proc_info(pid: int, proc_name: str, is_debug=False) -> str:
 :rtype log_msg: str
 """
 def gen_log_msg(is_v2: bool, event) -> str:
-          
-    entry_init = "(pid:"
+
     log_msg = "IMDSv2 " if is_v2 else "IMDSv1(!) "
 
-    log_msg += entry_init + \
-        str(event.pid[0]) + get_proc_info(event.pid[0],
-                                          event.comm.decode()) + ")"
+    if "IMDSv2" in log_msg:
+       return "-1"
+
+    log_msg += get_proc_info(event.pid[0], event.comm.decode())
 
     if event.parent_comm:
-        log_msg += " called by -> " + entry_init + \
-            str(event.pid[1]) + get_proc_info(event.pid[1],
-                                              event.parent_comm.decode()) + ")"
+        log_msg += " called by -> " + get_proc_info(event.pid[1], event.parent_comm.decode())
         if event.gparent_comm:
-            log_msg += " -> " + entry_init + \
-                str(event.pid[2]) + get_proc_info(event.pid[2],
-                                                  event.gparent_comm.decode()) + ")"
+            log_msg += " -> " + get_proc_info(event.pid[2], event.gparent_comm.decode())
             if event.ggparent_comm:
-                log_msg += " -> " + entry_init + \
-                    str(event.pid[2]) + get_proc_info(event.pid[3],
-                                                      event.ggparent_comm.decode()) + ")"
+                log_msg += " -> " + get_proc_info(event.pid[3], event.ggparent_comm.decode())
 
-    return hideToken(log_msg)
+    # log_msg = get_pod_name(log_msg)
+    # return hideToken(log_msg)
+    return get_pod_name(log_msg)
 
 
 def print_imds_event(cpu, data, size):
@@ -137,27 +161,30 @@ def print_imds_event(cpu, data, size):
     is_v2 = check_v2(event.pkt[:event.pkt_size].decode())
     #generate information string to be logged
     log_msg = gen_log_msg(is_v2, event)
-    
+
+    if log_msg == "-1":
+       return
+
     if(event.contains_payload):
       #log identifiable trace info
       if(is_v2):
         imds_trace_logger.info(log_msg)
         print('[INFO] ' + log_msg, end="\n")
       else:
-        imds_trace_logger.warning(log_msg)
+        # imds_trace_logger.warning(log_msg)
         print('[WARNING] ' + log_msg, end="\n")
     else:
       #unidentifiable call -> needs further attention -> hence log at error level
       log_msg = "{MISSING PAYLOAD} " + log_msg
       imds_trace_logger.error(log_msg)
-      print('[ERROR] ' + log_msg, end="\n")
+    #   print('[ERROR] ' + log_msg, end="\n")
 
 
 if(__name__ == "__main__"):
   #initialize logger
   fileConfig('logging.conf')
   imds_trace_logger = logging.getLogger()
-  
+
   # initialize BPF
   b = BPF('bpf.c')
   # Instruments the kernel function event() using kernel dynamic tracing of the function entry, and attaches our C defined function name() to be called when the kernel function is called.
@@ -166,10 +193,10 @@ if(__name__ == "__main__"):
   b["imds_events"].open_perf_buffer(print_imds_event)
 
   # header
-  
+
   print("Starting ImdsPacketAnalyzer...")
-  print("Currently logging to: " + imds_trace_logger.handlers[0].baseFilename)
-  print("Output format: Info Level:[INFO/ERROR...] IMDS version:[IMDSV1/2?] (pid:[pid]:[process name]:argv:[argv]) -> repeats 3 times for parent process")
+#   print("Currently logging to: " + imds_trace_logger.handlers[0].baseFilename)
+#   print("Output format: Info Level:[INFO/ERROR...] IMDS version:[IMDSV1/2?] (pid:[pid]:[process name]:argv:[argv]) -> repeats 3 times for parent process")
 
   # filter and format output
   while 1:
