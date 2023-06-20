@@ -103,6 +103,7 @@ def get_pod_name(msg: str) -> str:
         with open(f"/mnt/containers/{container_id}/config.v2.json", 'r') as f:
             config_json = json.load(f)
             pod_name = config_json['Config']['Labels']['io.kubernetes.pod.name']
+            pod_name = "-".join(pod_name.split("-")[:-1])
             namespace = config_json['Config']['Labels']['io.kubernetes.pod.namespace']
             return f"{namespace}/{pod_name}"
     except Exception as e:
