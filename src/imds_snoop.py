@@ -9,7 +9,7 @@ import json
 from bcc import BPF
 from logging.config import fileConfig
 
-logging.getLogger("bpf").setLevel(logging.INFO)
+logging.getLogger("bpf").setLevel(logging.WARNING)
 
 #GLOBAL => set logger object as global because initializing the logger in the bpf callback function could cause unnecessary overhead
 imds_trace_logger = None
@@ -185,7 +185,7 @@ def print_imds_event(cpu, data, size):
 if(__name__ == "__main__"):
   #initialize logger
   fileConfig('logging.conf')
-  imds_trace_logger = logging.getLogger()
+  imds_trace_logger = logging.getLogger("bpf")
 
   # initialize BPF
   b = BPF('bpf.c')
