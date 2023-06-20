@@ -174,7 +174,7 @@ def print_imds_event(cpu, data, size):
         print('[INFO] ' + log_msg, end="\n")
       else:
         imds_trace_logger.warning(log_msg)
-        # print('[WARNING] ' + log_msg, end="\n")
+        # print('print [WARNING] ' + log_msg, end="\n")
     else:
       #unidentifiable call -> needs further attention -> hence log at error level
       log_msg = "{MISSING PAYLOAD} " + log_msg
