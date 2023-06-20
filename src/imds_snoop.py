@@ -9,7 +9,7 @@ import json
 from bcc import BPF
 from logging.config import fileConfig
 
-logging.getLogger("bpf").setLevel(logging.WARNING)
+logging.getLogger("bpf").setLevel(logging.ERROR)
 
 #GLOBAL => set logger object as global because initializing the logger in the bpf callback function could cause unnecessary overhead
 imds_trace_logger = None
@@ -173,7 +173,7 @@ def print_imds_event(cpu, data, size):
         imds_trace_logger.info(log_msg)
         # print('[INFO] ' + log_msg, end="\n")
       else:
-        imds_trace_logger.warning(log_msg)
+        imds_trace_logger.error(log_msg)
         # print('print [WARNING] ' + log_msg, end="\n")
     else:
       #unidentifiable call -> needs further attention -> hence log at error level
