@@ -93,7 +93,7 @@ def get_pod_name(msg: str) -> str:
     container_id = matches[0] if len(matches) > 0 else "no container id"
 
     if container_id == "no container id":
-       imds_trace_logger.info(msg)
+    #    imds_trace_logger.info(msg)
        return "-1"
     # /var/lib/docker/containers/{container_id}/config.v2.json|jq -r '.Config.Hostname'
     # print(container_id)
@@ -105,7 +105,7 @@ def get_pod_name(msg: str) -> str:
             namespace = config_json['Config']['Labels']['io.kubernetes.pod.namespace']
             return f"{namespace}/{pod_name}"
     except Exception as e:
-       imds_trace_logger.info(e)
+    #    imds_trace_logger.info(e)
        return "-1"
 
 """ generate output message per imds network call
@@ -170,15 +170,17 @@ def print_imds_event(cpu, data, size):
     if(event.contains_payload):
       #log identifiable trace info
       if(is_v2):
-        imds_trace_logger.info(log_msg)
+         pass
+        # imds_trace_logger.info(log_msg)
         # print('[INFO] ' + log_msg, end="\n")
       else:
-        imds_trace_logger.error(log_msg)
+         pass
+        # imds_trace_logger.error(log_msg)
         # print('print [WARNING] ' + log_msg, end="\n")
     else:
       #unidentifiable call -> needs further attention -> hence log at error level
       log_msg = "{MISSING PAYLOAD} " + log_msg
-      imds_trace_logger.info(log_msg)
+    #   imds_trace_logger.info(log_msg)
     #   print('[ERROR] ' + log_msg, end="\n")
 
 
