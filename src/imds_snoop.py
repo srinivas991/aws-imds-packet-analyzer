@@ -170,8 +170,7 @@ def print_imds_event(cpu, data, size):
     if(event.contains_payload):
       #log identifiable trace info
       if(is_v2):
-         pass
-        # imds_trace_logger.info(log_msg)
+        imds_trace_logger.info(log_msg)
         # print('[INFO] ' + log_msg, end="\n")
       else:
         imds_trace_logger.error(log_msg)
@@ -185,7 +184,7 @@ def print_imds_event(cpu, data, size):
 
 if(__name__ == "__main__"):
   #initialize logger
-  fileConfig('logging.conf')
+  logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
   imds_trace_logger = logging.getLogger("bpf")
 
   # initialize BPF
