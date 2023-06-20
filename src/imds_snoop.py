@@ -174,8 +174,8 @@ def print_imds_event(cpu, data, size):
         imds_trace_logger.info(log_msg)
         # print('[INFO] ' + log_msg, end="\n")
       else:
-        imds_trace_logger.error(log_msg)
-        # print('print [WARNING] ' + log_msg, end="\n")
+        # imds_trace_logger.error(log_msg)
+        print('print [WARNING] ' + log_msg, end="\n")
     else:
       #unidentifiable call -> needs further attention -> hence log at error level
       log_msg = "{MISSING PAYLOAD} " + log_msg
@@ -186,10 +186,7 @@ def print_imds_event(cpu, data, size):
 if(__name__ == "__main__"):
   #initialize logger
   logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
-
-  file_handler = logging.FileHandler(f"/var/log/imds-trace-{os.environ.get('HOSTNAME')}.log")
   imds_trace_logger = logging.getLogger("bpf")
-  imds_trace_logger.addHandler(file_handler)
 
   # initialize BPF
   b = BPF('bpf.c')
