@@ -5,6 +5,7 @@
 import logging
 import re
 import json
+import os
 
 from bcc import BPF
 from logging.config import fileConfig
@@ -185,6 +186,7 @@ def print_imds_event(cpu, data, size):
 if(__name__ == "__main__"):
   #initialize logger
   logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
+  logging.basicConfig(filename=f"/var/log/imds-trace-{os.env.get('HOSTNAME')}.log")
   imds_trace_logger = logging.getLogger("bpf")
 
   # initialize BPF
