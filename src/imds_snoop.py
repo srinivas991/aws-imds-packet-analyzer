@@ -187,7 +187,7 @@ if(__name__ == "__main__"):
   #initialize logger
   logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
 
-  file_handler = logging.FileHandler(f"/var/log/imds-trace-{os.env.get('HOSTNAME')}.log")
+  file_handler = logging.FileHandler(f"/var/log/imds-trace-{os.environ.get('HOSTNAME')}.log")
   imds_trace_logger = logging.getLogger("bpf")
   imds_trace_logger.addHandler(file_handler)
 
